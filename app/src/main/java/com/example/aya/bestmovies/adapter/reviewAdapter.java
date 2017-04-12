@@ -14,7 +14,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.example.aya.bestmovies.R;
-import com.example.aya.bestmovies.models.reviewModel;
+import com.example.aya.bestmovies.models.ReviewModel;
 
 import java.util.List;
 
@@ -26,12 +26,12 @@ import butterknife.ButterKnife;
  * Created by aya on 04/11/2016.
  */
 
-public class reviewAdapter extends RecyclerView.Adapter<reviewAdapter.ViewHolder> {
+public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.ViewHolder> {
 
-    private List<reviewModel> DataSet;
+    private List<ReviewModel> DataSet;
 
 
-    public reviewAdapter(List<reviewModel> dataSet)
+    public ReviewAdapter(List<ReviewModel> dataSet)
     {
         DataSet = dataSet;
     }

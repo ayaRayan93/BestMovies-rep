@@ -5,15 +5,16 @@ import com.android.volley.Request;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
-import com.example.aya.bestmovies.Store.FavoriteStore;
 import com.example.aya.bestmovies.adapter.ItemsAdapter;
 
+import android.content.ContentValues;
+import android.database.Cursor;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.widget.SwipeRefreshLayout;
-import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.GridLayoutManager;
 
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -27,9 +28,15 @@ import android.view.ViewGroup;
 import com.example.aya.bestmovies.R;
 import com.example.aya.bestmovies.app.AppController;
 import com.example.aya.bestmovies.json.Parser;
-import com.example.aya.bestmovies.models.modelMovie;
+import com.example.aya.bestmovies.models.ModelMovie;
+import com.example.aya.bestmovies.store.DataBaseHelper;
+import com.example.aya.bestmovies.store.MovieTable;
+import com.example.aya.bestmovies.store.MoviesContentProvider;
 
 import java.io.UnsupportedEncodingException;
+
+import android.net.Uri;
+
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -37,13 +44,15 @@ import java.util.List;
 import butterknife.BindView;
 import butterknife.ButterKnife;
 
-import static org.json.JSONObject.NULL;
-
 /**
  * Created by aya on 04/11/2016.
  */
 
 public class ListItemsFragment extends Fragment  {
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+    }
 
     @BindView(R.id.recyclerView) RecyclerView mRecyclerView;
     @BindView(R.id.swipeRefresh) SwipeRefreshLayout mSwipeRefreshLayout;
@@ -51,8 +60,19 @@ public class ListItemsFragment extends Fragment  {
     private Menu menu;
     protected ItemsAdapter itemAdapter;
     protected RecyclerView.LayoutManager mLayoutManager;
-    protected List<modelMovie> dataSet;
-    protected List<modelMovie> favoriteDataset;
+    protected List<ModelMovie> dataSet;
+    private int flag;
+    private DataBaseHelper movieDB;
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+    }
 
     public ListItemsFragment() {}
 
@@ -81,7 +101,7 @@ public class ListItemsFragment extends Fragment  {
                 R.color.colorPrimaryDark, R.color.colorAccent,
                 R.color.colorAccent, R.color.colorPrimaryDark);
 
-        mLayoutManager = new LinearLayoutManager(getActivity());
+        mLayoutManager = new GridLayoutManager(getActivity(),3);
         mRecyclerView.setLayoutManager(mLayoutManager);
 
         if (!mSwipeRefreshLayout.isRefreshing())
@@ -103,7 +123,11 @@ public class ListItemsFragment extends Fragment  {
         mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                initiateRefresh(0);
+
+                if(flag<2)
+                initiateRefresh(flag);
+                else
+                    showFavorite();
 
             }
         });
@@ -122,11 +146,18 @@ public class ListItemsFragment extends Fragment  {
 
         switch (item.getItemId())
         {
+            case R.id.popular_rated:
+                initiateRefresh(0);
+                flag=0;
+                return true;
+
             case R.id.top_rated:
                 initiateRefresh(1);
+                flag=1;
                 return true;
 
             case R.id.favorite:
+                flag=2;
                 showFavorite();
                 return true;
 
@@ -140,19 +171,12 @@ public class ListItemsFragment extends Fragment  {
 
     private void showFavorite()
     {
-        favoriteDataset = new ArrayList<>();
 
-        for (String id : new FavoriteStore(getActivity()).findAllFavoriteMovies()) {
-            for (int j = 0; j < dataSet.size(); j++) {
-                if (dataSet.get(j).getID().equalsIgnoreCase(id))
-                    favoriteDataset.add(dataSet.get(j));
-            }
-
-        }
-
-
+       // movieDB=new DBHandler(getContext());
+        MoviesContentProvider m=new MoviesContentProvider(getContext());
         clearDataSet();
-        dataSet.addAll(0, favoriteDataset);
+        dataSet.addAll(0,getAllMovies(MoviesContentProvider.CONTENT_URI));
+
         itemAdapter.notifyDataSetChanged();
     }
 
@@ -176,7 +200,7 @@ public class ListItemsFragment extends Fragment  {
                 clearDataSet();
                 Iterator iterator = Parser.parseStringToJson(data).iterator();
                 while (iterator.hasNext()){
-                    modelMovie movie = (modelMovie)iterator.next();
+                    ModelMovie movie = (ModelMovie)iterator.next();
                     dataSet.add(movie);
                     itemAdapter.notifyItemInserted(dataSet.size() - 1);
                 }
@@ -197,7 +221,7 @@ public class ListItemsFragment extends Fragment  {
                 clearDataSet();
                 Iterator iterator = Parser.parseStringToJson(response).iterator();
                 while (iterator.hasNext()){
-                    modelMovie movie = (modelMovie)iterator.next();
+                    ModelMovie movie = (ModelMovie)iterator.next();
                     dataSet.add(movie);
                     itemAdapter.notifyItemInserted(dataSet.size() - 1);
                 }
@@ -230,5 +254,41 @@ public class ListItemsFragment extends Fragment  {
         mSwipeRefreshLayout.setRefreshing(false);
 
     }
+
+  private List<ModelMovie> getAllMovies(Uri uri)
+  {
+      String[] projection={MovieTable.KEY_ID,
+      MovieTable.KEY_TITLE,
+      MovieTable.KEY_POSTER,
+    //  MovieTable.KEY_OVERVIEW,
+   //   MovieTable.KEY_VOTE_AVERAGE,
+   //   MovieTable.KEY_RELEASE_DATE,
+      MovieTable.KEY_BACKDROP_PATH};
+
+      List<ModelMovie> movieList = new ArrayList<>();
+// Select All Query
+      String selectQuery = "SELECT * FROM " + MovieTable.TABLE_MOVIES;
+      MoviesContentProvider  movieContentProvider=new MoviesContentProvider(getContext());
+      //SQLiteDatabase db = this.getWritableDatabase();
+      Cursor cursor = movieContentProvider.query(MoviesContentProvider.CONTENT_URI,projection,selectQuery,null,null); //db.rawQuery(selectQuery, null);
+// looping through all rows and adding to list
+      if (cursor.moveToFirst()) {
+          do {
+              ModelMovie movie = new ModelMovie();
+              movie.setID(cursor.getString(0));
+              movie.setOriginal_title(cursor.getString(1));
+              movie.setPoster(cursor.getString(2));
+             // movie.setOverview(cursor.getString(3));
+            //  movie.setVote_average(cursor.getString(3));
+            //  movie.setRelease_date(cursor.getString(4));
+              movie.setBackdrop_path(cursor.getString(3));
+// Adding contact to list
+              movieList.add(movie);
+          } while (cursor.moveToNext());
+      }
+// return contact list
+      return movieList;
+
+  }
 
 }

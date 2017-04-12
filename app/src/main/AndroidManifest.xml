@@ -38,4 +38,9 @@
         </activity>
     </application>
 
+    <provider
+        android:name=".store.MoviesContentProvider"
+        android:authorities="com.example.aya.bestmovies.store" >
+    </provider>
+
 </manifest>

@@ -1,7 +1,7 @@
 package com.example.aya.bestmovies.json;
 
-import com.example.aya.bestmovies.models.modelMovie;
-import com.example.aya.bestmovies.models.reviewModel;
+import com.example.aya.bestmovies.models.ModelMovie;
+import com.example.aya.bestmovies.models.ReviewModel;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -10,16 +10,14 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-import static android.R.id.list;
-
 /**
  * Created by aya on 06/11/2016.
  */
 
 public class Parser {
 
-    public static List<modelMovie> parseStringToJson(String data) {
-        List<modelMovie> modelMovies;
+    public static List<ModelMovie> parseStringToJson(String data) {
+        List<ModelMovie> modelMovies;
 
         try {
             JSONObject jsonObject = new JSONObject(data);
@@ -38,7 +36,7 @@ public class Parser {
 
 
 
-                modelMovie movie = new modelMovie();
+                ModelMovie movie = new ModelMovie();
                 movie.setID(ID);
                 movie.setPoster(poster_path);
                 movie.setOverview(overview);
@@ -62,8 +60,8 @@ public class Parser {
         return null;
     }
 
-    public static List<reviewModel> parseDataToReview(String data) {
-        List<reviewModel> reviewMovies;
+    public static List<ReviewModel> parseDataToReview(String data) {
+        List<ReviewModel> reviewMovies;
 
         try {
             JSONObject jsonObject = new JSONObject(data);
@@ -77,7 +75,7 @@ public class Parser {
                 String url = reviewJsonObject.optString("url");
 
 
-                reviewModel review = new reviewModel();
+                ReviewModel review = new ReviewModel();
                 review.setAuther(auther);
                 review.setContent(content);
                 review.setUrl(url);

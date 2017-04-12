@@ -4,7 +4,7 @@ package com.example.aya.bestmovies.models;
  * Created by aya on 10/11/2016.
  */
 
-public class reviewModel {
+public class ReviewModel {
     String auther;
     String content;
     String url;

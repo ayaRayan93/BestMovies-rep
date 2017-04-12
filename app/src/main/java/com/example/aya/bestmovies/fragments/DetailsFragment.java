@@ -1,14 +1,12 @@
 package com.example.aya.bestmovies.fragments;
 
-
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
-import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -27,15 +25,16 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.toolbox.StringRequest;
 import com.example.aya.bestmovies.R;
-import com.example.aya.bestmovies.Store.FavoriteStore;
-import com.example.aya.bestmovies.adapter.reviewAdapter;
+import com.example.aya.bestmovies.adapter.ReviewAdapter;
 import com.example.aya.bestmovies.app.AppController;
 import com.example.aya.bestmovies.json.Parser;
-import com.example.aya.bestmovies.models.modelMovie;
+import com.example.aya.bestmovies.models.ModelMovie;
 import android.support.v4.app.Fragment;
-import android.widget.Toast;
 
-import com.example.aya.bestmovies.models.reviewModel;
+import com.example.aya.bestmovies.models.ReviewModel;
+import com.example.aya.bestmovies.store.DataBaseHelper;
+import com.example.aya.bestmovies.store.MovieTable;
+import com.example.aya.bestmovies.store.MoviesContentProvider;
 import com.squareup.picasso.Picasso;
 
 import java.io.UnsupportedEncodingException;
@@ -45,8 +44,6 @@ import java.util.List;
 
 import butterknife.BindView;
 import butterknife.ButterKnife;
-
-import static android.content.Context.MODE_PRIVATE;
 
 /**
  * Created by aya on 04/11/2016.
@@ -65,10 +62,11 @@ public class DetailsFragment extends Fragment {
     @BindView(R.id.imageButton) ImageButton imageButton;
 
     public static final String ARG_ITEM_ID = "item_id";
-    private static modelMovie model;
+    private static ModelMovie model;
+    private DataBaseHelper dataBase;
     private  String video_id;
-    protected List<reviewModel> reviewData;
-    private reviewAdapter reviewAdapter;
+    protected List<ReviewModel> reviewData;
+    private ReviewAdapter ReviewAdapter;
     public  LinearLayoutManager mLayoutManager;
    /* public static SharedPreferences settings;
     public static int index=0;*/
@@ -84,7 +82,7 @@ public class DetailsFragment extends Fragment {
             // Load the dummy content specified by the fragment
             // arguments. In a real-world scenario, use a Loader
             // to load content from a content provider.
-            model = (modelMovie) getArguments().getSerializable(ARG_ITEM_ID);
+            model = (ModelMovie) getArguments().getSerializable(ARG_ITEM_ID);
         }
     }
 
@@ -96,8 +94,8 @@ public class DetailsFragment extends Fragment {
         ButterKnife.bind(this, view);
 
         recyclerView1.setHasFixedSize(true);
-        reviewAdapter = new reviewAdapter(reviewData);
-        recyclerView1.setAdapter(reviewAdapter);
+        ReviewAdapter = new ReviewAdapter(reviewData);
+        recyclerView1.setAdapter(ReviewAdapter);
 
         review.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -121,19 +119,14 @@ public class DetailsFragment extends Fragment {
             @Override
             public void onClick(View v) {
 
-                /*SharedPreferences.Editor myeditor = settings.edit();
-                myeditor.putString("movieID"+index, model.getID());
-                index++;
-                myeditor.commit();*/
-
-                new FavoriteStore(getActivity()).SaveMovieID(model.getID());
+                addMovie(model);
             }
         });
 
         titel.setText(model.getOriginal_title());
         releasDate.setText(model.getRelease_date());
         overView.setText(model.getOverview());
-        rate.setRating(Float.parseFloat(model.getVote_average())/2);
+//        rate.setRating(Float.parseFloat(model.getVote_average())/2);
 
         Picasso.with(getActivity()).load(model.getBackdrop_path()).into(background);
         return view;
@@ -176,9 +169,9 @@ public class DetailsFragment extends Fragment {
 
                 while (iterator.hasNext())
                 {
-                    reviewModel rMovie = (reviewModel)iterator.next();
+                    ReviewModel rMovie = (ReviewModel)iterator.next();
                     reviewData.add(rMovie);
-                    reviewAdapter.notifyItemInserted(reviewData.size() - 1);
+                    ReviewAdapter.notifyItemInserted(reviewData.size() - 1);
                 }
 
             } catch (UnsupportedEncodingException e)
@@ -198,9 +191,9 @@ public class DetailsFragment extends Fragment {
                 Iterator iterator = Parser.parseDataToReview(response).iterator();
                 while (iterator.hasNext())
                 {
-                    reviewModel rMovie = (reviewModel)iterator.next();
+                    ReviewModel rMovie = (ReviewModel)iterator.next();
                     reviewData.add(rMovie);
-                    reviewAdapter.notifyItemInserted(reviewData.size() - 1);
+                    ReviewAdapter.notifyItemInserted(reviewData.size() - 1);
                 }
 
 
@@ -222,8 +215,23 @@ public class DetailsFragment extends Fragment {
     {
         if (reviewData != null){
             reviewData.clear();
-            reviewAdapter.notifyDataSetChanged();
+            ReviewAdapter.notifyDataSetChanged();
         }
     }
-
+    public void addMovie(ModelMovie movie) {
+        // SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(MovieTable.KEY_ID, movie.getID());
+        values.put(MovieTable.KEY_TITLE,movie.getOriginal_title());
+        values.put(MovieTable.KEY_POSTER, movie.getPoster());
+       // values.put(MovieTable.KEY_OVERVIEW,movie.getOverview());
+       // values.put(MovieTable.KEY_VOTE_AVERAGE,movie.getVote_average());
+       // values.put(MovieTable.KEY_RELEASE_DATE,movie.getRelease_date());
+        values.put(MovieTable.KEY_BACKDROP_PATH,movie.getBackdrop_path());
+        // Inserting Row
+        //db.insert(TABLE_MOVIES, null, values);
+        //db.close(); // Closing database connection
+        MoviesContentProvider moviesContentProvider=new MoviesContentProvider(getContext());
+        moviesContentProvider.insert(MoviesContentProvider.CONTENT_URI_add,values);
+    }
 }
